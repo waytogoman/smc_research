@@ -1,0 +1,11 @@
+# New/renormalized text files are LF in the repo and on checkout.
+* text=auto eol=lf
+
+# Byte-exact preserves (override the rule above):
+# - shared input CSVs (SHAs are pinned in data/README.md)
+# - the entire v1 archive, whose MANIFEST_SHA256.txt must verify in any clone
+# - the autumn 2026 research archive, whose studies pinned their original bytes
+data/*.csv -text
+archive/v1/** -text
+archive/2026_autumn_research/** -text
+archive/2026_autumn_research/**/*.xmind binary

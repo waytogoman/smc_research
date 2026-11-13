@@ -14,6 +14,9 @@ One line each: what it is, why it is parked, what would bring it back.
 | Shared-risk estimate between funds (September) | Belongs to portfolio risk, not ranking | Allocation work starts |
 | Any market factor beyond the fixed long-history list | The factor set must not become a project again | The fixed list visibly fails for a strategy in step 6 |
 | Extending the 18-factor production set back before 2012 | Needs work in `factor-lens` | The small long-history set proves inadequate |
+| Adopting the corrected September factor build in production | A production decision, written up on 10 September and never taken; its files must first be found (Mac or data drive) | AC decides to take it up, or step 3 shows the current factors are a problem |
+| Tidying `smc_hedge/data` (old subset, old factor panel, May diagnostics) | Needs a code search and a test run on a branch | Any quiet half hour |
+| Tidying the data drive folder `30_dev_data\smc_hedge` | Not looked inside yet | After the repository cleanup |
 | Does alpha fade as a fund's assets grow | Needs the ranking test first; asset history is incomplete | After step 7 |
 | Does money chase past performance, and does it pay | Same | After step 7 |
 | What investors earned in money-weighted terms | Same | After step 7 |

@@ -6,10 +6,10 @@ Version of 13 November 2026, for AC to edit. One page. Time budgets are first gu
 
 | Step | What | Done when | Budget |
 | --- | --- | --- | --- |
-| 0 | Set up | This repository is on GitHub (private). The autumn work in `smc_hedge` is archived in one folder. The three unpushed `smc_hedge` commits of 13 November are pushed. | Half a day |
+| 0 | Set up | Done: this repository is on GitHub and the pending `smc_hedge` commits are pushed. Still to do: archive the autumn work in `smc_hedge` by running `tools/cleanup_smc_hedge.py` (see `docs/smc_hedge_cleanup_plan.md`). | Half a day |
 | 1 | Rehearse on the old database | The whole test runs end to end on the Nilsson data, which has already been seen. No conclusions are drawn from it. | 3 days |
 | 2 | Bring in HFR | Point-in-time panel built from the date-added field, one record per fund. One table of fund counts by year and strategy, live and dead. | 3 days |
-| 3 | Settle how far back we go | The first review date is fixed and written below, from the three clocks in `docs/test_design_notes.md`. Includes a small long-history set of market factors if AC agrees. | 3 days |
+| 3 | Settle how far back we go | The first review date is fixed and written below, from the three clocks in `docs/test_design_notes.md`. Includes the small long-history set of market factors (agreed 13 November): fixed list, public data, three days at most. | 3 days |
 | 4 | Design page | One page, agreed by AC: universe, review dates, scores, outcome, comparison. | 1 day |
 | 5 | Precision check | Using random scores only, one number: the smallest top-group advantage the test can see. If it is too large, the design changes before any real score is looked at. | 2 days |
 | 6 | Development run | Results page for the development period: every score against the outcome, plus the NAV split for a few funds. | 1 week |
@@ -38,9 +38,10 @@ Detail and reasons are in `docs/test_design_notes.md` (plain) and `docs/test_des
 
 ## Decisions AC still owes
 
-- [ ] Build a small long-history set of market factors (step 3)? Without it, market-adjusted measures cannot start before October 2012, and the development period has almost no review dates.
+- [x] Build a small long-history set of market factors (step 3). Agreed 13 November.
 - [ ] Which records are in the universe: funds of funds, crypto, risk-premia, long-only and UCITS products.
 - [ ] What to assume for a fund that stops reporting during the 12-month outcome window.
+- [ ] Whether to delete the simulation run outputs once they are in the holding folder (see `docs/smc_hedge_cleanup_plan.md`).
 
 ## Rules for this plan
 
