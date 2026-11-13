@@ -1,0 +1,31 @@
+# Data never goes into git. It lives on the data drive (see .env.example).
+data/
+*.zip
+*.mdb
+*.accdb
+*.parquet
+*.feather
+*.db
+
+# Run outputs: keep the script and the two result pages, not the bulk output.
+studies/*/output/
+studies/*/cache/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Secrets and local settings
+.env
+
+# Editors and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+~$*
