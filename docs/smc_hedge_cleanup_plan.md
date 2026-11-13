@@ -25,12 +25,12 @@ Tracked items move with `git mv` into one folder, `archive/2026_autumn_research/
 | Item | What it is | Action |
 | --- | --- | --- |
 | `smc_hedge/` | Production package, 98 files | Stays |
-| `tests/` | 47 files | Stays, except the process-supervisor test, which is archived |
+| `tests/` | 47 files | Stays, except the process-supervisor test and its helper, which are archived |
 | `backtest/smc_backtest/` | Backtest framework, 98 files | Stays |
 | `backtest/runs/_template/` | Template for future backtests | Stays |
 | `backtest/runs/alpha_rankings/` | September draft of a real-fund test for Recent24, never run, 15 files | Archived |
 | `config/` | Paths and constraints | Stays |
-| `data/` | See the next table | Untouched in this pass |
+| `data/` | See the next table | Untouched in this pass, except six links in its README, which are repointed to the archived factor pages |
 | `docs/app/`, `docs/backtest/` | Production documentation | Stays |
 | `docs/README.md` | An index that is now mostly about research | Replaced by a short index |
 | `docs/SESSION_SYNC.md` | The two-machine procedure | Archived; replaced by one line |
@@ -88,7 +88,7 @@ git commit -m "Archive autumn 2026 research; keep production tree only"
 git push --follow-tags
 ```
 
-The first run only reports. The second tags the current state as `pre-cleanup-2026-11-13`, makes the moves and stages them. It does not commit. The full test run takes about 18 minutes.
+The first run only reports. The second tags the current state as `pre-cleanup-2026-11-13`, makes the moves and stages them. It does not commit. The test run is shorter than the earlier 18 minutes, because 163 test files sit in the archived folders and pytest skips `archive`.
 
 On the Mac, afterwards:
 
@@ -99,7 +99,15 @@ python tools/cleanup_smc_hedge.py --repo <path to smc_hedge> --bulk-only --apply
 
 To undo before committing: `git reset --hard pre-cleanup-2026-11-13` puts every tracked file back, and the untracked content is in the holding folder.
 
-The script was tested on a copy of the repository's file layout with placeholder contents, on Linux. It has not been run on Windows or on the real files, which is why the dry run comes first.
+If the script stops while moving untracked content, run it again. If it stops later, while moving tracked files, it refuses to run again: undo with the reset above, delete what is left of `archive/2026_autumn_research`, then run it again.
+
+The script was first tested on a copy of the repository's file layout with placeholder contents, on Linux. On 13 November it was also run with `--apply` on a throwaway clone of the real repository on Windows: 3,599 files staged as pure moves, nine other changes, nothing left modified.
+
+## What happened on the first real run (13 November)
+
+The untracked content moved (203.1 GB), except 14 scratch folders under `research/` that the Codex sandbox account had created and locked. The script stopped there, before moving anything tracked. `tools/unlock_sandbox_folders.ps1`, run from an administrator PowerShell, gives access to those folders so the script can be run again.
+
+Three changes were made to the script after reviewing it against the real repository: the supervisor test's helper is archived with the test; two pages that had Windows line endings on disk only get their committed bytes back before the move; and the six links in `data/README.md` are repointed.
 
 ## Things found along the way
 

@@ -14,15 +14,19 @@ What --apply does, in this order:
      keeping the same relative layout so links between pages and studies still work.
   5. Writes the replacement README.md, AGENTS.md, docs/README.md, .gitattributes and the
      archive README, makes five small wording changes in CONTRIBUTING.md and CLAUDE.md,
-     and stages exactly those changes.
+     repoints the six research links in data/README.md, and stages exactly those changes.
+
+Before step 4 it also restores the committed line endings of any moving text file that
+has Windows line endings on disk only, so that the commit is a pure move.
 
 On the second machine, after `git pull`, run it with --bulk-only --apply: that only moves
 the untracked leftovers out of the old folders and changes nothing in git.
 It does not commit. Review with `git status`, run the tests, then commit and push.
 
-If it stops part-way, it can simply be run again. To undo everything after step 2:
-`git reset --hard pre-cleanup-2026-11-13` restores every tracked file, and the untracked
-content sits in the holding folder under the same relative paths.
+If it stops during step 3, it can simply be run again. If it stops during step 4 or 5,
+it refuses to run again; first undo with `git reset --hard pre-cleanup-2026-11-13` and
+delete what is left of archive/2026_autumn_research. That reset restores every tracked
+file, and the untracked content sits in the holding folder under the same relative paths.
 
 See docs/smc_hedge_cleanup_plan.md in smc_research for the reasons behind each move.
 """
@@ -50,8 +54,13 @@ TRACKED_MOVES = [
     ("tools/windows_process_supervisor.py", "tools/windows_process_supervisor.py"),
     ("tools/check_session_sync.py", "tools/check_session_sync.py"),
     ("tests/test_windows_process_supervisor.py", "tests/test_windows_process_supervisor.py"),
+    # Used only by the supervisor test above, and imports the archived supervisor tool.
+    ("tests/helpers/supervisor_fixture.py", "tests/helpers/supervisor_fixture.py"),
     ("AGENTS.md", "AGENTS_2026-11.md"),
 ]
+
+# Folders removed at the end if no file is left in them.
+EMPTY_AFTER = ["work", "~archived_code", "scripts", "research", "docs/research", "tests/helpers"]
 
 # Folders whose untracked content leaves the tree. The last three are wholly untracked.
 BULK_ROOTS = [
@@ -104,8 +113,46 @@ SECTION_EDITS = [
 ]
 
 
+# Links in files that stay but point at pages that move: (file, old text, new text).
+# Every occurrence is replaced. The data README still links to the September factor
+# pages at docs/research/, where they have not been since the October reorganisation.
+LINK_EDITS = [
+    ("data/README.md", "](../docs/research/2026-09-10_",
+     f"](../{ARCHIVE}/docs/research/factors_review/2026-09-10_"),
+]
+
+
+def crlf_only_on_disk(repo: Path, paths: list[str]) -> list[str]:
+    """Tracked text files that git stores with LF but that have CRLF on disk.
+
+    Git treats them as unchanged today. The archive is byte-exact (-text), so once
+    moved they would show as modified. Restoring the committed bytes first keeps the
+    commit a pure move."""
+    existing = [p for p in paths if (repo / p).exists()]
+    if not existing:
+        return []
+    hits = []
+    for rec in git(repo, "ls-files", "--eol", "-z", "--", *existing).split("\0"):
+        info, _, path = rec.partition("\t")
+        f = info.split()
+        if (len(f) >= 3 and f[0] == "i/lf" and f[1] in ("w/crlf", "w/mixed")
+                and f[2].startswith("attr/text")):
+            hits.append(path)
+    return hits
+
+
 def apply_text_edits(repo: Path) -> None:
     touched = set()
+    for name, old, new in LINK_EDITS:
+        path = repo / name
+        text = path.read_bytes().decode("utf-8")
+        count = text.count(old)
+        if not count:
+            print(f"  link text not found, edit {name} by hand: {old!r}")
+            continue
+        path.write_bytes(text.replace(old, new).encode("utf-8"))
+        print(f"  repointed {count} links in {name}")
+        touched.add(name)
     for name, old, new in TEXT_EDITS:
         path = repo / name
         text = path.read_bytes().decode("utf-8")
@@ -266,6 +313,12 @@ def main() -> None:
         n = len([l for l in git(repo, "ls-files", "--", src).splitlines() if l])
         print(f"  {n:6d} tracked files   {src}  ->  {ARCHIVE}/{dst}")
 
+    crlf = [] if a.bulk_only else crlf_only_on_disk(repo, [src for src, _ in TRACKED_MOVES])
+    if crlf:
+        print("\nFiles whose committed line endings are restored on disk before the move")
+        for p in crlf:
+            print("  ", p)
+
     bulk = untracked_entries(repo)
     print(f"\nUntracked content that leaves the tree for {cold}")
     by_root: dict[str, list[int]] = {}
@@ -313,12 +366,30 @@ def main() -> None:
         sys.exit("Untracked content is still present, stopping before git mv:\n" + "\n".join(left[:20]))
 
     if a.bulk_only:
-        for name in ("work", "~archived_code", "scripts", "research", "docs/research"):
+        for name in EMPTY_AFTER:
             d = repo / name
             if d.is_dir() and tree_size(d)[0] == 0:
                 shutil.rmtree(d)
         print("Bulk-only run finished. Nothing in git was changed.")
         return
+
+    if crlf:
+        # `git checkout-index -f` skips files it believes are unchanged, so write the
+        # committed bytes directly.
+        for p in crlf:
+            blob = subprocess.run(["git", "-C", str(repo), "cat-file", "blob", f":{p}"],
+                                  capture_output=True)
+            if blob.returncode != 0:
+                sys.exit(f"Could not read the committed version of {p}, stopping before git mv.")
+            (repo / p).write_bytes(blob.stdout)
+        # Stages nothing, since the content is what is committed; it only refreshes
+        # git's record of the files so they are not reported as modified after the move.
+        git(repo, "add", "--", *crlf)
+        still = crlf_only_on_disk(repo, crlf)
+        if still:
+            sys.exit("Could not restore committed line endings, stopping before git mv:\n"
+                     + "\n".join(still))
+        print(f"Restored committed line endings on disk in {len(crlf)} files")
 
     for src, dst in TRACKED_MOVES:
         if not (repo / src).exists():
@@ -328,7 +399,7 @@ def main() -> None:
         git(repo, "mv", src, f"{ARCHIVE}/{dst}")
     print("Moved tracked research into", ARCHIVE)
 
-    for name in ("work", "~archived_code", "scripts", "research", "docs/research"):
+    for name in EMPTY_AFTER:
         d = repo / name
         if d.is_dir() and tree_size(d)[0] == 0:
             shutil.rmtree(d)
@@ -349,6 +420,11 @@ def main() -> None:
     changed = [l for l in git(repo, "status", "--porcelain").splitlines() if l]
     renames = sum(1 for l in changed if l.startswith("R"))
     print(f"\nStaged: {renames} renames, {len(changed) - renames} other changes.")
+    unstaged = [l for l in changed if not l.startswith("??") and l[1] != " "]
+    if unstaged:
+        print("\nWarning: files differ on disk from what is staged. Look at these before committing:")
+        for l in unstaged[:20]:
+            print("  ", l)
     print("Next: review `git status`, run `python -m pytest -q`, then\n"
           '  git commit -m "Archive autumn 2026 research; keep production tree only"\n'
           "  git push --follow-tags")
